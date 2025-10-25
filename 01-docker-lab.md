@@ -335,5 +335,3 @@ docker rmi $(docker images -q)
 ```
 
 ---
-
-Would you like me to create a **PDF lab guide version** (formatted with sections, verification boxes, and screenshots placeholders) that you can use for study or training documentation?
