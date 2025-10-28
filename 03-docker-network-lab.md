@@ -1,187 +1,189 @@
 
 ---
 
-## 🧪 **Docker Lab Exercise — Docker Network Management**
+## 🧪 **Docker Lab Exercise — Manage Docker Networks and Containers**
 
 ### **🎯 Objective**
 
-You will learn how to:
+You will learn to:
 
-* Create custom Docker bridge networks with subnet and gateway
-* Attach containers to networks
-* Validate network and IP assignments
-* Connect and disconnect containers from networks
-* Inspect and remove networks
+* Create Docker networks with custom subnet and gateway
+* Run containers on specific networks
+* Inspect and validate IPs and network configuration
+* Connect/disconnect containers from networks
+* Remove networks safely
 
 ---
 
-### **🧩 Step 1: List existing networks**
+### **🧩 Step 1: Check existing Docker networks**
 
 ```bash
 docker network ls
 ```
 
-🔍 Check default networks (`bridge`, `host`, `none`) and note that no custom ones exist yet.
+👉 Lists the default networks: `bridge`, `host`, `none`.
 
 ---
 
-### **🧩 Step 2: Create a custom network with subnet and gateway**
+### **🧩 Step 2: Create the first custom network**
 
 ```bash
 docker network create \
   --driver bridge \
-  --subnet 192.168.50.0/24 \
-  --gateway 192.168.50.1 \
-  app_net1
+  --subnet 192.168.100.0/24 \
+  --gateway 192.168.100.1 \
+  net1
 ```
 
-✅ Creates a new network called **`app_net1`**.
+✅ Creates a network named **net1** with a custom subnet and gateway.
 
 ---
 
 ### **🧩 Step 3: Inspect the network**
 
 ```bash
-docker network inspect app_net1
+docker network inspect net1
 ```
 
-📋 Verify subnet, gateway, and confirm there are no containers attached yet.
+📋 Verify the subnet, gateway, and ensure no containers are attached yet.
 
 ---
 
-### **🧩 Step 4: Create a container in the new network**
+### **🧩 Step 4: Run a container in the new network**
 
 ```bash
-docker run -d --name web1 --network app_net1 nginx
+docker run -d --name container1 --network net1 nginx
 ```
 
-✅ Runs an Nginx container attached to `app_net1`.
+✅ Launches a container called **container1** in **net1**.
 
 ---
 
-### **🧩 Step 5: Validate container IP and network**
+### **🧩 Step 5: Validate container network and IP**
 
 ```bash
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' web1
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container1
 ```
 
-or
+or inside the container:
 
 ```bash
-docker exec -it web1 ip addr show eth0
+docker exec -it container1 ip addr show eth0
 ```
 
-📍 You should see an IP from `192.168.50.0/24`.
+📍 Confirm that the IP belongs to `192.168.100.0/24`.
 
 ---
 
-### **🧩 Step 6: Create another container (not connected yet)**
-
-```bash
-docker run -d --name web2 nginx
-```
-
-✅ Runs `web2` in the **default bridge** network.
-
----
-
-### **🧩 Step 7: Create another network**
+### **🧩 Step 6: Create another custom network**
 
 ```bash
 docker network create \
   --driver bridge \
-  --subnet 10.10.10.0/24 \
-  --gateway 10.10.10.1 \
-  app_net2
+  --subnet 10.20.30.0/24 \
+  --gateway 10.20.30.1 \
+  net2
 ```
 
-✅ Creates **`app_net2`**.
+✅ Creates a second network named **net2**.
 
 ---
 
-### **🧩 Step 8: Connect existing container (web1) to new network**
+### **🧩 Step 7: Run another container in the new network**
 
 ```bash
-docker network connect app_net2 web1
+docker run -d --name container2 --network net2 nginx
 ```
 
-✅ Now `web1` is attached to both `app_net1` and `app_net2`.
+✅ Creates **container2** attached to **net2**.
 
 ---
 
-### **🧩 Step 9: Inspect container to verify multiple networks**
+### **🧩 Step 8: Inspect both networks**
 
 ```bash
-docker inspect web1 | grep -A5 Networks
+docker network inspect net1
+docker network inspect net2
 ```
 
-🔍 You’ll see both `app_net1` and `app_net2` listed, each with unique IPs.
+🔍 Validate which containers are connected to each network.
 
 ---
 
-### **🧩 Step 10: Disconnect container from one network**
+### **🧩 Step 9: Connect an existing container (container1) to the second network**
 
 ```bash
-docker network disconnect app_net1 web1
+docker network connect net2 container1
 ```
 
-✅ Removes `web1` from `app_net1`.
+✅ Now `container1` is attached to **both** networks (`net1` and `net2`).
 
 ---
 
-### **🧩 Step 11: Validate disconnection**
+### **🧩 Step 10: Validate multi-network connection**
 
 ```bash
-docker inspect web1 | grep -A5 Networks
+docker inspect container1 | grep -A5 Networks
 ```
 
-📋 You should now see only `app_net2`.
+🔍 You’ll see both `net1` and `net2` with different IPs assigned.
 
 ---
 
-### **🧩 Step 12: Inspect and remove networks**
-
-Before removing, make sure no container is connected:
+### **🧩 Step 11: Disconnect container from one network**
 
 ```bash
-docker network inspect app_net1
-docker network inspect app_net2
+docker network disconnect net1 container1
 ```
 
-If no containers remain:
-
-```bash
-docker network rm app_net1 app_net2
-```
-
-🧹 Cleans up the custom networks.
+✅ Removes `container1` from **net1**.
 
 ---
 
-### **🧩 Step 13: (Optional) Validate network communication**
-
-You can check connectivity between containers on the same network.
-
-For example:
+### **🧩 Step 12: Validate disconnection**
 
 ```bash
-docker exec -it web1 ping -c 3 web2
+docker inspect container1 | grep -A5 Networks
 ```
 
-If they’re on **different networks**, ping will fail — showing isolation.
+📋 Now only `net2` should remain for `container1`.
 
 ---
 
-### ✅ **Summary of Key Commands**
+### **🧩 Step 13: Remove networks**
 
-| Purpose                              | Command Example                                   |
-| ------------------------------------ | ------------------------------------------------- |
-| List networks                        | `docker network ls`                               |
-| Create network                       | `docker network create --subnet --gateway`        |
-| Inspect network                      | `docker network inspect <name>`                   |
-| Run container in network             | `docker run --network <name>`                     |
-| Connect container to another network | `docker network connect <network> <container>`    |
-| Disconnect container from network    | `docker network disconnect <network> <container>` |
-| Remove network                       | `docker network rm <network>`                     |
+Before removing, ensure containers are disconnected:
+
+```bash
+docker network rm net1 net2
+```
+
+🧹 Removes both custom networks.
+
+---
+
+### **🧩 Step 14: Optional — Test communication between containers**
+
+To verify connectivity:
+
+```bash
+docker exec -it container2 ping -c 3 container1
+```
+
+💡 Ping works only if both containers share the same network.
+
+---
+
+### ✅ **Summary of Commands**
+
+| Action                            | Command                                           |
+| --------------------------------- | ------------------------------------------------- |
+| List networks                     | `docker network ls`                               |
+| Create network                    | `docker network create --subnet --gateway`        |
+| Inspect network                   | `docker network inspect <network>`                |
+| Run container in network          | `docker run --network <network>`                  |
+| Connect container to network      | `docker network connect <network> <container>`    |
+| Disconnect container from network | `docker network disconnect <network> <container>` |
+| Remove network                    | `docker network rm <network>`                     |
 
 ---
