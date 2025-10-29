@@ -1,4 +1,3 @@
----
 
 ## 🧪 **Docker Lab Exercise: Build, Tag & Push 5 Images**
 
